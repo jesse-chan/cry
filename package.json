@@ -1,0 +1,19 @@
+{
+  "name": "cry",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "cry": "tsx cry.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
