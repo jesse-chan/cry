@@ -2,8 +2,12 @@
   "name": "cry",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/cry.js",
+  "bin": {
+    "cry": "./dist/cry.js"
+  },
   "scripts": {
+    "build": "tsc && chmod +x dist/cry.js",
     "typecheck": "tsc --noEmit",
     "cry": "tsx cry.ts"
   },
