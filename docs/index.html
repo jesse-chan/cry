@@ -205,6 +205,10 @@ function copyWhenReady(job) {
 let busy = false;
 async function run(mode) {
   if (busy) return;
+  if (!window.crypto?.subtle) {
+    setStatus('此瀏覽器環境無法使用加密功能，請用 https://jesse-chan.github.io/cry/ 開啟', 'err');
+    return;
+  }
   const text = mode === 'e' ? input.value : input.value.trim();
   if (!text) { setStatus('請先輸入內容', 'err'); input.focus(); return; }
   if (!pass.value) { setStatus('請先輸入密語', 'err'); pass.focus(); return; }
@@ -219,10 +223,16 @@ async function run(mode) {
     output.textContent = result;
     copyBtn.disabled = false;
     setStatus((mode === 'e' ? '已加密' : '已解密') + ((await copied) ? '，已複製到剪貼簿' : '，請按「複製」'), 'ok');
-  } catch {
+  } catch (e) {
     output.textContent = '';
     copyBtn.disabled = true;
-    setStatus(mode === 'e' ? '加密失敗' : '解密失敗：密文錯誤或密語不符', 'err');
+    // 密語錯誤或密文被改動時，AES-GCM 驗證失敗會丟出 OperationError
+    const wrongKey = mode === 'd' && e?.name === 'OperationError';
+    setStatus(
+      wrongKey ? '解密失敗：密文錯誤或密語不符'
+        : `${mode === 'e' ? '加密' : '解密'}失敗：${e?.name && e.name !== 'Error' ? e.name + ' ' : ''}${e?.message ?? e}`,
+      'err',
+    );
   } finally {
     busy = false;
     $('btn-e').disabled = $('btn-d').disabled = false;

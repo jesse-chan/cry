@@ -109,7 +109,12 @@ function toBase64Url(bytes) {
 
 function fromBase64Url(str) {
   const s = str.trim().replace(/-/g, '+').replace(/_/g, '/');
-  const bin = atob(s + '='.repeat((4 - (s.length % 4)) % 4));
+  let bin;
+  try {
+    bin = atob(s + '='.repeat((4 - (s.length % 4)) % 4));
+  } catch {
+    throw new Error('密文格式不正確');
+  }
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
