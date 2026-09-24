@@ -251,30 +251,15 @@ copyBtn.addEventListener('click', async () => {
   }
 });
 
-// Firefox、Safari（含所有 iOS 瀏覽器）讀取剪貼簿時一定會跳出「貼上」確認選單，
-// 只有 Chromium 系列能在授權後直接讀取；其他瀏覽器改為選取輸入框，讓使用者自行貼上
-const canReadClipboard = !!navigator.userAgentData && !!navigator.clipboard?.readText;
-
-function focusForPaste() {
-  input.focus();
-  input.select();
-  const touch = matchMedia('(pointer: coarse)').matches;
-  const mac = /Mac|iPhone|iPad/.test(navigator.platform);
-  setStatus(touch ? '請長按輸入框，選擇「貼上」' : `請按 ${mac ? '⌘V' : 'Ctrl+V'} 貼上`);
-}
-
 $('paste').addEventListener('click', async () => {
-  if (!canReadClipboard) { focusForPaste(); return; }
   try {
     input.value = await navigator.clipboard.readText();
     setStatus('');
   } catch {
-    focusForPaste();
+    setStatus('無法讀取剪貼簿，請長按輸入框貼上', 'err');
+    input.focus();
   }
 });
-
-// 使用者自行貼上後清掉提示
-input.addEventListener('paste', () => setStatus(''));
 
 $('clear').addEventListener('click', () => {
   input.value = '';

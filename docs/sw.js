@@ -1,5 +1,5 @@
 // 離線快取：先回傳快取，同時在背景更新
-const CACHE = 'cry-v4';
+const CACHE = 'cry-v3';
 const ASSETS = [
   './',
   './index.html',
