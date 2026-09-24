@@ -7,8 +7,8 @@ const SALT_LEN = 16;
 const IV_LEN = 12;
 const TAG_LEN = 16;
 
-// 金鑰來源：環境變數 CRY_KEY，未設定時使用預設密語
-const PASSPHRASE = process.env.CRY_KEY ?? 'cry-default-passphrase';
+// 金鑰來源：環境變數 CRY_KEY（必須設定）
+const PASSPHRASE = process.env.CRY_KEY ?? '';
 
 function deriveKey(salt: Buffer): Buffer {
   return scryptSync(PASSPHRASE, salt, 32);
@@ -58,12 +58,16 @@ function copyToClipboard(text: string): boolean {
 function usage(): never {
   console.error('用法: cry -e <字串>   加密');
   console.error('      cry -d <字串>   解密');
-  console.error('可用環境變數 CRY_KEY 指定密語');
+  console.error('需先設定環境變數 CRY_KEY 作為密語');
   process.exit(1);
 }
 
 const [mode, input] = process.argv.slice(2);
 if (input === undefined || (mode !== '-e' && mode !== '-d')) usage();
+if (!PASSPHRASE) {
+  console.error('尚未設定 CRY_KEY，請執行 ./install.sh 或在 ~/.zshrc 加入 export CRY_KEY="你的密語"');
+  process.exit(1);
+}
 
 let output: string;
 try {

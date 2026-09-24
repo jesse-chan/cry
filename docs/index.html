@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>cry</title>
+<meta name="description" content="字串加密 / 解密（AES-256-GCM），與 cry CLI 格式相同">
+<meta name="theme-color" content="#f6f7f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111413" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="cry">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #f6f7f5;
+    --surface: #ffffff;
+    --border: #dfe3e1;
+    --text: #1a1d1c;
+    --muted: #5d6663;
+    --accent: #0f766e;
+    --accent-text: #ffffff;
+    --accent-soft: #e3f1ef;
+    --danger: #b42318;
+    --radius: 12px;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111413;
+      --surface: #1b201e;
+      --border: #2d3431;
+      --text: #e8ecea;
+      --muted: #9aa39f;
+      --accent: #3fb8a5;
+      --accent-text: #0b1513;
+      --accent-soft: #1d2f2b;
+      --danger: #f97066;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Segoe UI", sans-serif;
+    padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  main { max-width: 560px; margin: 0 auto; display: grid; gap: 16px; }
+  header { display: flex; align-items: center; gap: 10px; }
+  header img { width: 32px; height: 32px; border-radius: 8px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: 0.02em; }
+  header span { color: var(--muted); font-size: 14px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: grid;
+    gap: 10px;
+  }
+  label { font-size: 14px; color: var(--muted); font-weight: 600; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  textarea, input[type=password], input[type=text] {
+    width: 100%;
+    font: inherit;
+    font-size: 16px; /* 避免 iOS 聚焦時自動放大 */
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  textarea { min-height: 110px; resize: vertical; word-break: break-all; }
+  textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .pass { display: flex; gap: 8px; }
+  .pass input { flex: 1; min-width: 0; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 10px 14px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .small { padding: 6px 10px; font-size: 14px; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); padding: 14px; font-size: 17px; }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  #output {
+    min-height: 48px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 15px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    user-select: all;
+    -webkit-user-select: all;
+  }
+  #status { font-size: 14px; color: var(--muted); min-height: 21px; }
+  #status.ok { color: var(--accent); }
+  #status.err { color: var(--danger); }
+  .note { font-size: 13px; color: var(--muted); margin: 0; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.svg" alt="">
+    <h1>cry</h1>
+    <span>字串加密 / 解密</span>
+  </header>
+
+  <section class="card">
+    <div class="row">
+      <label for="input">輸入</label>
+      <div class="row">
+        <button type="button" class="small" id="paste">貼上</button>
+        <button type="button" class="small" id="clear">清除</button>
+      </div>
+    </div>
+    <textarea id="input" placeholder="要加密的文字，或要解密的密文" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    <div class="actions">
+      <button type="button" class="primary" id="btn-e">加密</button>
+      <button type="button" class="primary" id="btn-d">解密</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <label>結果</label>
+      <button type="button" class="small" id="copy" disabled>複製</button>
+    </div>
+    <div id="output" aria-live="polite"></div>
+    <div id="status" role="status"></div>
+  </section>
+
+  <section class="card">
+    <label for="pass">密語（同 CLI 的 CRY_KEY）</label>
+    <div class="pass">
+      <input type="password" id="pass" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button type="button" class="small" id="toggle">顯示</button>
+    </div>
+    <label class="check"><input type="checkbox" id="remember"> 在這台裝置記住密語</label>
+    <p class="note">加解密全部在這台裝置的瀏覽器內完成，文字與密語不會傳到任何伺服器。</p>
+  </section>
+</main>
+
+<script type="module">
+import { encrypt, decrypt } from './cry.js';
+
+const $ = (id) => document.getElementById(id);
+const input = $('input'), pass = $('pass'), remember = $('remember');
+const output = $('output'), status = $('status'), copyBtn = $('copy');
+const KEY = 'cry.passphrase';
+
+function store(fn) { try { return fn(localStorage); } catch { return null; } }
+
+const saved = store((s) => s.getItem(KEY));
+if (saved) { pass.value = saved; remember.checked = true; }
+
+function syncRemember() {
+  store((s) => remember.checked && pass.value ? s.setItem(KEY, pass.value) : s.removeItem(KEY));
+}
+remember.addEventListener('change', syncRemember);
+pass.addEventListener('input', () => { if (remember.checked) syncRemember(); });
+
+$('toggle').addEventListener('click', (e) => {
+  const show = pass.type === 'password';
+  pass.type = show ? 'text' : 'password';
+  e.currentTarget.textContent = show ? '隱藏' : '顯示';
+});
+
+function setStatus(text, kind = '') {
+  status.textContent = text;
+  status.className = kind;
+}
+
+// Safari 只允許在使用者點擊的當下寫入剪貼簿，
+// 所以先用 ClipboardItem 包住尚未完成的結果，再等運算結束。
+function copyWhenReady(job) {
+  if (window.ClipboardItem && navigator.clipboard?.write) {
+    const blob = job.then((t) => new Blob([t], { type: 'text/plain' }));
+    blob.catch(() => {}); // 失敗時由 run() 顯示錯誤
+    return navigator.clipboard
+      .write([new ClipboardItem({ 'text/plain': blob })])
+      .then(() => true, () => job.then((t) => navigator.clipboard.writeText(t)).then(() => true, () => false));
+  }
+  return job.then((t) => navigator.clipboard.writeText(t)).then(() => true, () => false);
+}
+
+let busy = false;
+async function run(mode) {
+  if (busy) return;
+  const text = mode === 'e' ? input.value : input.value.trim();
+  if (!text) { setStatus('請先輸入內容', 'err'); input.focus(); return; }
+  if (!pass.value) { setStatus('請先輸入密語', 'err'); pass.focus(); return; }
+
+  busy = true;
+  $('btn-e').disabled = $('btn-d').disabled = true;
+  setStatus('處理中…');
+  const job = (mode === 'e' ? encrypt : decrypt)(text, pass.value);
+  const copied = copyWhenReady(job);
+  try {
+    const result = await job;
+    output.textContent = result;
+    copyBtn.disabled = false;
+    setStatus((mode === 'e' ? '已加密' : '已解密') + ((await copied) ? '，已複製到剪貼簿' : '，請按「複製」'), 'ok');
+  } catch {
+    output.textContent = '';
+    copyBtn.disabled = true;
+    setStatus(mode === 'e' ? '加密失敗' : '解密失敗：密文錯誤或密語不符', 'err');
+  } finally {
+    busy = false;
+    $('btn-e').disabled = $('btn-d').disabled = false;
+  }
+}
+
+$('btn-e').addEventListener('click', () => run('e'));
+$('btn-d').addEventListener('click', () => run('d'));
+
+copyBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(output.textContent);
+    setStatus('已複製到剪貼簿', 'ok');
+  } catch {
+    setStatus('無法複製，請長按結果手動複製', 'err');
+  }
+});
+
+$('paste').addEventListener('click', async () => {
+  try {
+    input.value = await navigator.clipboard.readText();
+    setStatus('');
+  } catch {
+    setStatus('無法讀取剪貼簿，請長按輸入框貼上', 'err');
+    input.focus();
+  }
+});
+
+$('clear').addEventListener('click', () => {
+  input.value = '';
+  output.textContent = '';
+  copyBtn.disabled = true;
+  setStatus('');
+  input.focus();
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
